@@ -3,13 +3,20 @@ package handlers
 import (
     "encoding/json"
     "net/http"
+    "strconv"
+
     "go_api_vue_ws_v1/models"
-    "github.com/gorilla/mux"
     "gorm.io/gorm"
     "golang.org/x/crypto/bcrypt"
+    "github.com/gorilla/mux"
 )
 
 var db *gorm.DB
+
+// SetDB устанавливает подключение к базе данных
+func SetDB(database *gorm.DB) {
+    db = database
+}
 
 // HashPassword hashes a password using bcrypt
 func HashPassword(password string) (string, error) {
@@ -83,4 +90,52 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(map[string]string{"token": token})
+}
+
+// GetUsers retrieves a list of all users
+func GetUsers(w http.ResponseWriter, r *http.Request) {
+    var users []models.User
+    db.Find(&users)
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(users)
+}
+
+// CreateUser adds a new user
+func CreateUser(w http.ResponseWriter, r *http.Request) {
+    var user models.User
+    json.NewDecoder(r.Body).Decode(&user)
+    db.Create(&user)
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(user)
+}
+
+// GetUser retrieves a single user by ID
+func GetUser(w http.ResponseWriter, r *http.Request) {
+    params := mux.Vars(r)
+    id, _ := strconv.Atoi(params["id"])
+    var user models.User
+    db.First(&user, id)
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(user)
+}
+
+// UpdateUser updates the details of an existing user
+func UpdateUser(w http.ResponseWriter, r *http.Request) {
+    params := mux.Vars(r)
+    id, _ := strconv.Atoi(params["id"])
+    var user models.User
+    db.First(&user, id)
+    json.NewDecoder(r.Body).Decode(&user)
+    db.Save(&user)
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(user)
+}
+
+// DeleteUser removes a user by ID
+func DeleteUser(w http.ResponseWriter, r *http.Request) {
+    params := mux.Vars(r)
+    id, _ := strconv.Atoi(params["id"])
+    var user models.User
+    db.Delete(&user, id)
+    w.WriteHeader(http.StatusNoContent)
 }
